@@ -1,3 +1,4 @@
+use ggez::graphics::Rect;
 use ggez::{Context, GameResult};
 use ggez::event::EventHandler;
 use ggez::input::mouse::MouseButton;
@@ -157,67 +158,84 @@ impl MainState {
 
     pub fn handle_game_ui_click(&mut self, x: f32, y: f32) {
         // Check pickaxe upgrade button
-        if x >= 50.0 && x <= 250.0 && y >= 150.0 && y <= 200.0 {
+        let pickaxe_btn_rect = Rect::new(30.0, 220.0, 200.0, 40.0);
+        if x >= pickaxe_btn_rect.x && x <= pickaxe_btn_rect.x + pickaxe_btn_rect.w && 
+        y >= pickaxe_btn_rect.y && y <= pickaxe_btn_rect.y + pickaxe_btn_rect.h {
             self.player.upgrade_pickaxe();
         }
         
         // Check mine upgrade button
-        if x >= 50.0 && x <= 250.0 && y >= 220.0 && y <= 270.0 {
+        let mine_btn_rect = Rect::new(30.0, 270.0, 200.0, 40.0);
+        if x >= mine_btn_rect.x && x <= mine_btn_rect.x + mine_btn_rect.w && 
+        y >= mine_btn_rect.y && y <= mine_btn_rect.y + mine_btn_rect.h {
             self.player.upgrade_mine();
         }
         
         // Check contribute buttons
-        if x >= 400.0 && x <= 550.0 {
-            let contribution_amounts = [10.0, 50.0, 100.0, 500.0, 1000.0];
+        let contribution_amounts = [10.0, 50.0, 100.0, 500.0, 1000.0];
+        let contrib_btn_x = WINDOW_WIDTH - 240.0;
+        let contrib_btn_width = 220.0;
+        
+        // Check numeric contribution options
+        for (i, amount) in contribution_amounts.iter().enumerate() {
+            let y_pos = 190.0 + (i as f32 * 40.0);
             
-            // Check numeric contribution options
-            for (i, amount) in contribution_amounts.iter().enumerate() {
-                let y_pos = 180.0 + (i as f32 * 40.0);
-                
-                if y >= y_pos && y <= y_pos + 30.0 && *amount <= self.player.gold {
-                    self.player.contribute_gold(*amount);
-                    break;
-                }
+            if x >= contrib_btn_x && x <= contrib_btn_x + contrib_btn_width && 
+            y >= y_pos && y <= y_pos + 30.0 && *amount <= self.player.gold {
+                self.player.contribute_gold(*amount);
+                break;
             }
-            
-            // Check "All" option
-            let all_y_pos = 180.0 + (contribution_amounts.len() as f32 * 40.0);
-            
-            if y >= all_y_pos && y <= all_y_pos + 30.0 && self.player.gold > 0.0 {
-                self.player.contribute_gold(self.player.gold);
-            }
+        }
+        
+        // Check "All" option
+        let all_y_pos = 190.0 + (contribution_amounts.len() as f32 * 40.0);
+        
+        if x >= contrib_btn_x && x <= contrib_btn_x + contrib_btn_width && 
+        y >= all_y_pos && y <= all_y_pos + 30.0 && self.player.gold > 0.0 {
+            self.player.contribute_gold(self.player.gold);
         }
     }
 
     pub fn handle_round_end_ui_click(&mut self, x: f32, y: f32) {
         if let Some(results) = &self.round_results {
-            let mut y_offset = 150.0;
+            // Calculate the position of the continue button based on UI drawing code
+            let panel_height = (results.len() as f32 * 40.0) + 120.0;
+            let panel_y = WINDOW_HEIGHT / 2.0 - panel_height / 2.0;
             
-            // Count number of results
-            y_offset += 30.0 * results.len() as f32 + 30.0;
+            // Continue button position matches what's drawn in the UI
+            let button_rect = Rect::new(
+                WINDOW_WIDTH / 2.0 - 100.0,
+                panel_y + panel_height - 50.0,
+                200.0,
+                40.0
+            );
             
-            // Debugging output (useful for development)
-            // println!("Click at ({}, {}), button at y: {} to {}", 
-            //          x, y, y_offset + 30.0, y_offset + 70.0);
-            
-            // Make the continue button larger and more forgiving with a wider hit area
-            // This helps fix the issue with the continue button not always responding
-            let button_x_min = WINDOW_WIDTH / 2.0 - 100.0; // Wider x range
-            let button_x_max = WINDOW_WIDTH / 2.0 + 100.0;
-            let button_y_min = y_offset + 20.0; // Start a bit higher
-            let button_y_max = y_offset + 80.0; // End a bit lower
-            
-            if x >= button_x_min && x <= button_x_max &&
-               y >= button_y_min && y <= button_y_max {
+            if x >= button_rect.x && x <= button_rect.x + button_rect.w &&
+            y >= button_rect.y && y <= button_rect.y + button_rect.h {
                 self.start_next_round();
             }
         }
     }
 
     pub fn handle_game_over_ui_click(&mut self, x: f32, y: f32) {
-        // Check restart button
-        if x >= WINDOW_WIDTH / 2.0 - 75.0 && x <= WINDOW_WIDTH / 2.0 + 75.0 &&
-           y >= WINDOW_HEIGHT / 2.0 + 30.0 && y <= WINDOW_HEIGHT / 2.0 + 70.0 {
+        // Panel position calculation to match the UI drawing code
+        let panel_rect = Rect::new(
+            WINDOW_WIDTH / 2.0 - 250.0,
+            WINDOW_HEIGHT / 2.0 - 200.0,
+            500.0,
+            400.0
+        );
+        
+        // Check restart button - positioned to match what's drawn in the UI
+        let restart_rect = Rect::new(
+            WINDOW_WIDTH / 2.0 - 75.0,
+            panel_rect.y + 330.0,
+            150.0,
+            40.0
+        );
+        
+        if x >= restart_rect.x && x <= restart_rect.x + restart_rect.w &&
+        y >= restart_rect.y && y <= restart_rect.y + restart_rect.h {
             self.restart_game();
         }
     }
