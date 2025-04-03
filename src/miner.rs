@@ -20,6 +20,7 @@ pub struct Miner {
     pub last_mine_time: Instant,
     pub health: i32,
     pub alive: bool,
+    pub has_donated_this_round: bool, // Add this field
 }
 
 impl Miner {
@@ -33,6 +34,7 @@ impl Miner {
             last_mine_time: Instant::now(),
             health: STARTING_HEALTH,
             alive: true,
+            has_donated_this_round: false, // Initialize to false
         }
     }
 
@@ -117,6 +119,7 @@ impl Miner {
         if amount <= self.gold {
             self.gold -= amount;
             self.donated_gold += amount;
+            self.has_donated_this_round = true;
         }
     }
 

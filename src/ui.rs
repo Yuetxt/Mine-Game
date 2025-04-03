@@ -501,27 +501,37 @@ fn draw_upgrade_options(state: &MainState, ctx: &mut Context) -> GameResult {
     
     graphics::draw(ctx, &pick_handle_mesh, DrawParam::default())?;
     
-    // Text
+    // Text color based on button color
     let text_color = if pickaxe_color.r + pickaxe_color.g + pickaxe_color.b > 1.8 {
         COLOR_TEXT // Dark text for light buttons
     } else {
         COLOR_TEXT_LIGHT // Light text for dark buttons
     };
     
-    let pickaxe_text = Text::new(
-        TextFragment::new(format!(
+    let pickaxe_text_str = if state.player.pickaxe_level >= 4 {
+        "Pickaxe Lv4/4: MAX"
+    } else {
+        &format!(
             "Pickaxe Lv{}/4: {:.0}g",
             state.player.pickaxe_level,
             state.player.pickaxe_upgrade_cost()
-        ))
-        .scale(18.0)
+        )
+    };
+    
+    let pickaxe_text = Text::new(
+        TextFragment::new(pickaxe_text_str)
+        .scale(16.0) // Slightly smaller text (was 18.0)
         .color(text_color)
     );
+    
+    // Calculate better text position to ensure it fits in the button
+    let text_x = 70.0;
+    let text_y = 231.0; // Slight adjustment for vertical centering
     
     graphics::draw(
         ctx,
         &pickaxe_text,
-        DrawParam::default().dest([70.0, 230.0]),
+        DrawParam::default().dest([text_x, text_y]),
     )?;
     
     // Mine upgrade button
@@ -550,27 +560,37 @@ fn draw_upgrade_options(state: &MainState, ctx: &mut Context) -> GameResult {
     
     graphics::draw(ctx, &mine_icon, DrawParam::default())?;
     
-    // Text
+    // Text color based on button color
     let text_color = if mine_color.r + mine_color.g + mine_color.b > 1.8 {
         COLOR_TEXT // Dark text for light buttons
     } else {
         COLOR_TEXT_LIGHT // Light text for dark buttons
     };
     
-    let mine_text = Text::new(
-        TextFragment::new(format!(
+    let mine_text_str = if state.player.mine_level >= 4 {
+        "Mine Lv4/4: MAX"
+    } else {
+        &format!(
             "Mine Lv{}/4: {:.0}g",
             state.player.mine_level,
             state.player.mine_upgrade_cost()
-        ))
-        .scale(18.0)
+        )
+    };
+    
+    let mine_text = Text::new(
+        TextFragment::new(mine_text_str)
+        .scale(16.0) // Slightly smaller text (was 18.0)
         .color(text_color)
     );
+    
+    // Calculate better text position to ensure it fits in the button
+    let text_x = 70.0;
+    let text_y = 281.0; // Slight adjustment for vertical centering
     
     graphics::draw(
         ctx,
         &mine_text,
-        DrawParam::default().dest([70.0, 280.0]),
+        DrawParam::default().dest([text_x, text_y]),
     )?;
 
     Ok(())
@@ -895,7 +915,7 @@ fn draw_contribute_option(state: &MainState, ctx: &mut Context) -> GameResult {
     )?;
     
     // Add win/loss tracker section
-    draw_win_loss_tracker(state, ctx, WINDOW_WIDTH - 240.0, y_offset + 80.0)?;
+    //draw_win_loss_tracker(state, ctx, WINDOW_WIDTH - 240.0, y_offset + 80.0)?;
 
     Ok(())
 }
@@ -907,7 +927,7 @@ pub fn draw_round_end_ui(state: &MainState, ctx: &mut Context) -> GameResult {
     
     if let Some(results) = &state.round_results {
         // Main panel
-        let panel_height = (results.len() as f32 * 40.0) + 120.0;
+        let panel_height = (results.len() as f32 * 40.0) + 150.0; // Increased panel height for button
         let panel_rect = Rect::new(
             WINDOW_WIDTH / 2.0 - 250.0,
             WINDOW_HEIGHT / 2.0 - panel_height / 2.0,
@@ -1054,11 +1074,12 @@ pub fn draw_round_end_ui(state: &MainState, ctx: &mut Context) -> GameResult {
             y_offset += 40.0; // Increased spacing between rows
         }
         
-        // Draw continue button
+        // Draw continue button - Fixed position at the bottom of the panel with proper spacing
+        // This matches what's shown in the screenshot
         let button_rect = Rect::new(
-            WINDOW_WIDTH / 2.0 - 100.0,
-            panel_rect.y + panel_height - 50.0,
-            200.0,
+            WINDOW_WIDTH / 2.0 - 125.0,
+            panel_rect.y + panel_height - 60.0, // Position at the bottom with some padding
+            250.0, // Make button wider to match screenshot
             40.0
         );
         
@@ -1079,6 +1100,9 @@ pub fn draw_game_over_ui(state: &MainState, ctx: &mut Context) -> GameResult {
     // Clear with the background color
     graphics::clear(ctx, COLOR_BACKGROUND);
     
+    // Check if player won
+    let player_won = state.player_has_won();
+    
     // Create a fancy game over panel
     let panel_rect = Rect::new(
         WINDOW_WIDTH / 2.0 - 250.0,
@@ -1097,7 +1121,7 @@ pub fn draw_game_over_ui(state: &MainState, ctx: &mut Context) -> GameResult {
         50.0
     );
     
-    let header_bar_color = if state.player.alive {
+    let header_bar_color = if player_won {
         COLOR_ACCENT // Green for victory
     } else {
         COLOR_SECONDARY // Red for defeat
@@ -1115,12 +1139,12 @@ pub fn draw_game_over_ui(state: &MainState, ctx: &mut Context) -> GameResult {
     graphics::draw(ctx, &header_bar, DrawParam::default())?;
     
     // Draw game over text
-    let game_over_message = if state.player.alive {
-        "Game Complete - You Survived!"
+    let game_over_message = if player_won {
+        "Victory! You have won!"
     } else {
         "Game Over - You Died!"
     };
-    
+
     draw_header_text(
         ctx,
         game_over_message,
@@ -1255,7 +1279,7 @@ pub fn draw_game_over_ui(state: &MainState, ctx: &mut Context) -> GameResult {
     }
     
     let streak_label = Text::new(
-        TextFragment::new("Best Win Streak: ")
+        TextFragment::new("Win Streak: ")
             .scale(20.0)
             .color(COLOR_TEXT)
     );
