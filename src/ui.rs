@@ -841,7 +841,7 @@ fn draw_contribute_option(state: &MainState, ctx: &mut Context) -> GameResult {
     
     // Donation explanation
     let explanation_text = Text::new(
-        TextFragment::new("Donate gold to avoid taking damage at the end of each round.")
+        TextFragment::new("Donate gold to win rounds.")
             .scale(16.0)
             .color(COLOR_TEXT)
     );
