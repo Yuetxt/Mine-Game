@@ -5,7 +5,7 @@ use std::time::Instant;
 
 use crate::game_state::{MainState, ROUND_DURATION, WINDOW_WIDTH, WINDOW_HEIGHT, MAX_ROUNDS};
 
-// Modern color palette
+// color palette
 const COLOR_BACKGROUND: Color = Color::new(0.95, 0.97, 1.0, 1.0);  // Light blue-gray
 const COLOR_PRIMARY: Color = Color::new(0.2, 0.4, 0.8, 1.0);       // Royal blue
 const COLOR_SECONDARY: Color = Color::new(0.9, 0.4, 0.3, 1.0);     // Coral

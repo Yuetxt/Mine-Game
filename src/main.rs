@@ -11,6 +11,8 @@ use game_state::MainState;
 const WINDOW_WIDTH: f32 = 800.0;
 const WINDOW_HEIGHT: f32 = 600.0;
 
+
+// Main function to run the game and initialize the state
 fn main() -> GameResult {
     let (mut ctx, event_loop) = ContextBuilder::new("placeholder_title", "Daniel Zheng")
         .window_setup(WindowSetup::default().title("Placeholder Title"))

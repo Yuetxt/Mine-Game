@@ -28,7 +28,7 @@ impl Miner {
 
         let starting_gold = match miner_type {
             MinerType::Player => 0.0,
-            MinerType::Bot => 50.0,
+            MinerType::Bot => 100.0,
         };
         Miner {
             miner_type,
@@ -56,12 +56,12 @@ impl Miner {
 
     pub fn gold_per_mine(&self) -> f32 {
         match self.mine_level {
-            0 => 2.0,  // 2g (base)
-            1 => 3.0,  // 3g
-            2 => 5.0,  // 5g
-            3 => 8.0,  // 8g
-            4 => 15.0, // 15g
-            _ => 2.0,  // Default to base in case
+            0 => 5.0,  // 2g (base)
+            1 => 8.0,  // 3g
+            2 => 12.0,  // 5g
+            3 => 20.0,  // 8g
+            4 => 28.0, // 15g
+            _ => 5.0,  // Default to base
         }
     }
 

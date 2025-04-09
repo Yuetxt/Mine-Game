@@ -9,8 +9,8 @@ use crate::miner::{Miner, MinerType};
 use crate::ui;
 
 // Game constants
-pub const MAX_ROUNDS: usize = 15;
-pub const ROUND_DURATION: Duration = Duration::from_secs(60); // 1 minute
+pub const MAX_ROUNDS: usize = 10; // shortened to 10 from 15
+pub const ROUND_DURATION: Duration = Duration::from_secs(30); // 30 seconds from 60 seconds for speed tuning
 pub const WINDOW_WIDTH: f32 = 800.0;
 pub const WINDOW_HEIGHT: f32 = 600.0;
 
