@@ -25,6 +25,11 @@ pub struct Miner {
 
 impl Miner {
     pub fn new(miner_type: MinerType) -> Self {
+
+        let starting_gold = match miner_type {
+            MinerType::Player => 0.0,
+            MinerType::Bot => 50.0,
+        };
         Miner {
             miner_type,
             gold: 0.0,

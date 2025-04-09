@@ -371,6 +371,7 @@ pub fn draw_game_ui(state: &MainState, ctx: &mut Context) -> GameResult {
     Ok(())
 }
 
+
 fn draw_game_activity_log(state: &MainState, ctx: &mut Context) -> GameResult {
     // Center panel for game activity
     let log_rect = Rect::new(260.0, 80.0, WINDOW_WIDTH - 530.0, 240.0);
@@ -404,15 +405,44 @@ fn draw_game_activity_log(state: &MainState, ctx: &mut Context) -> GameResult {
     
     graphics::draw(ctx, &line, DrawParam::default())?;
     
-    // Generate some sample activity entries
-    // In a real implementation, you would track this in the game state
-    let activities = [
-        ("Placeholder.", COLOR_TEXT),
-        ("Placeholder", COLOR_TEXT),
-        ("Placeholder", COLOR_TEXT),
-        ("Placeholder", COLOR_ACCENT),
-        ("Placeholder", COLOR_PRIMARY),
-    ];
+    let mut activities = Vec::new();
+    
+    // Check for bot upgrade events (derived from their levels)
+    for (i, bot) in state.bots.iter().enumerate() {
+        if bot.alive {
+            // For demo purposes, create notifications based on bot levels
+            if bot.pickaxe_level >= 1 {
+                activities.push((format!("Bot #{} upgraded pickaxe to Lv{}", i + 1, bot.pickaxe_level), COLOR_SECONDARY));
+            }
+            
+            if bot.mine_level >= 1 {
+                activities.push((format!("Bot #{} upgraded mine to Lv{}", i + 1, bot.mine_level), COLOR_PRIMARY));
+            }
+        } else {
+            // Bot is dead
+            activities.push((format!("Bot #{} has died!", i + 1), COLOR_SECONDARY));
+        }
+    }
+    
+    // Add player notifications
+    if state.player.pickaxe_level > 0 {
+        activities.push((format!("You upgraded pickaxe to Lv{}", state.player.pickaxe_level), COLOR_ACCENT));
+    }
+    
+    if state.player.mine_level > 0 {
+        activities.push((format!("You upgraded mine to Lv{}", state.player.mine_level), COLOR_ACCENT));
+    }
+    
+    // Round started notification
+    activities.push((format!("Round {} started", state.current_round), COLOR_PRIMARY));
+    
+    // If we have too many activities, only show the most recent 5
+    if activities.len() > 5 {
+        activities = activities.into_iter().take(5).collect();
+    }
+    
+    // Reverse the activities to show newest at the top
+    activities.reverse();
     
     let mut y_offset = log_rect.y + 60.0;
     
@@ -444,7 +474,7 @@ fn draw_game_activity_log(state: &MainState, ctx: &mut Context) -> GameResult {
         
         // Activity text
         let activity_text = Text::new(
-            TextFragment::new(*message)
+            TextFragment::new(message.as_str())
                 .scale(16.0)
                 .color(*color)
         );
@@ -478,7 +508,7 @@ fn draw_upgrade_options(state: &MainState, ctx: &mut Context) -> GameResult {
     
     // Pickaxe upgrade button
     let mut pickaxe_color = COLOR_SECONDARY;
-    let pickaxe_hover = false; // In a real game, check if mouse is over button
+    let pickaxe_hover = false;
     
     if state.player.pickaxe_level < 4 && state.player.gold >= state.player.pickaxe_upgrade_cost() {
         pickaxe_color = COLOR_ACCENT;
@@ -536,7 +566,7 @@ fn draw_upgrade_options(state: &MainState, ctx: &mut Context) -> GameResult {
     
     // Mine upgrade button
     let mut mine_color = COLOR_PRIMARY;
-    let mine_hover = false; // In a real game, check if mouse is over button
+    let mine_hover = false;
     
     if state.player.mine_level < 4 && state.player.gold >= state.player.mine_upgrade_cost() {
         mine_color = COLOR_ACCENT;
@@ -547,7 +577,7 @@ fn draw_upgrade_options(state: &MainState, ctx: &mut Context) -> GameResult {
     let mine_rect = Rect::new(30.0, 270.0, 200.0, 40.0);
     draw_button(ctx, mine_rect, mine_color, mine_hover)?;
     
-    // Mine icon (simplified)
+    // Mine icon
     let mine_icon = MeshBuilder::new()
         .circle(
             DrawMode::fill(),
@@ -583,9 +613,9 @@ fn draw_upgrade_options(state: &MainState, ctx: &mut Context) -> GameResult {
         .color(text_color)
     );
     
-    // Calculate better text position to ensure it fits in the button
+    // Calculate text position to ensure it fits in the button
     let text_x = 70.0;
-    let text_y = 281.0; // Slight adjustment for vertical centering
+    let text_y = 281.0;
     
     graphics::draw(
         ctx,
@@ -724,101 +754,8 @@ fn draw_bot_info(state: &MainState, ctx: &mut Context) -> GameResult {
                 DrawParam::default().dest([385.0, y_offset]),
             )?;
             
-            y_offset += 50.0; // Increased spacing between bot rows
+            y_offset += 50.0;
         }
-    }
-    
-    Ok(())
-}
-fn draw_win_loss_tracker(state: &MainState, ctx: &mut Context, x: f32, y: f32) -> GameResult {
-    // Section header
-    draw_header_text(
-        ctx,
-        "Round Results",
-        x,
-        y,
-        22.0,
-        COLOR_PRIMARY
-    )?;
-    
-    // Draw a separator line
-    let line_rect = Rect::new(
-        x,
-        y + 30.0,
-        220.0,
-        2.0
-    );
-    
-    let line = MeshBuilder::new()
-        .rectangle(
-            DrawMode::fill(),
-            line_rect,
-            Color::new(0.8, 0.8, 0.8, 0.8)
-        )?
-        .build(ctx)?;
-    
-    graphics::draw(ctx, &line, DrawParam::default())?;
-    
-    // Draw past round results (win/loss streak)
-    let mut y_offset = y + 50.0;
-    
-    // We'll use the current_round to simulate some past results
-    // In the real implementation, you would track this in the game state
-    for round in 1..state.current_round {
-        // For demo purposes, alternate wins and losses
-        let win = round % 2 == 0;
-        
-        let result_rect = Rect::new(
-            x,
-            y_offset - 5.0,
-            220.0,
-            30.0
-        );
-        
-        let result_color = if win {
-            Color::new(0.8, 1.0, 0.8, 0.6) // Light green for win
-        } else {
-            Color::new(1.0, 0.8, 0.8, 0.6) // Light red for loss
-        };
-        
-        let result_bg = MeshBuilder::new()
-            .rounded_rectangle(
-                DrawMode::fill(),
-                result_rect,
-                4.0,
-                result_color
-            )?
-            .build(ctx)?;
-        
-        graphics::draw(ctx, &result_bg, DrawParam::default())?;
-        
-        // Round number
-        let round_text = Text::new(
-            TextFragment::new(format!("Round {}", round))
-                .scale(16.0)
-                .color(COLOR_TEXT)
-        );
-        
-        graphics::draw(
-            ctx,
-            &round_text,
-            DrawParam::default().dest([x + 10.0, y_offset]),
-        )?;
-        
-        // Result text
-        let result_text = Text::new(
-            TextFragment::new(if win { "WIN" } else { "LOSS" })
-                .scale(16.0)
-                .color(if win { COLOR_ACCENT } else { COLOR_SECONDARY })
-        );
-        
-        graphics::draw(
-            ctx,
-            &result_text,
-            DrawParam::default().dest([x + 150.0, y_offset]),
-        )?;
-        
-        y_offset += 35.0;
     }
     
     Ok(())
@@ -869,7 +806,7 @@ fn draw_contribute_option(state: &MainState, ctx: &mut Context) -> GameResult {
     let contribution_amounts = [10.0, 50.0, 100.0, 500.0, 1000.0];
     let mut y_offset = 190.0;
     
-    // Draw numeric contribution options
+    // Draw contribution options
     for amount in &contribution_amounts {
         let button_rect = Rect::new(WINDOW_WIDTH - 240.0, y_offset, 220.0, 30.0);
         
@@ -879,7 +816,7 @@ fn draw_contribute_option(state: &MainState, ctx: &mut Context) -> GameResult {
             COLOR_DISABLED
         };
         
-        let button_hover = false; // In a real game, check if mouse is over button
+        let button_hover = false;
         
         // Use helper function for button with text
         draw_button_with_text(
@@ -902,7 +839,7 @@ fn draw_contribute_option(state: &MainState, ctx: &mut Context) -> GameResult {
         COLOR_DISABLED
     };
     
-    let all_button_hover = false; // In a real game, check if mouse is over button
+    let all_button_hover = false; 
     
     // Use helper function for button with text
     draw_button_with_text(
@@ -914,7 +851,6 @@ fn draw_contribute_option(state: &MainState, ctx: &mut Context) -> GameResult {
         all_button_hover
     )?;
     
-    // Add win/loss tracker section
     //draw_win_loss_tracker(state, ctx, WINDOW_WIDTH - 240.0, y_offset + 80.0)?;
 
     Ok(())
@@ -1071,15 +1007,14 @@ pub fn draw_round_end_ui(state: &MainState, ctx: &mut Context) -> GameResult {
                 DrawParam::default().dest([panel_rect.x + 370.0, y_offset]),
             )?;
             
-            y_offset += 40.0; // Increased spacing between rows
+            y_offset += 40.0;
         }
         
-        // Draw continue button - Fixed position at the bottom of the panel with proper spacing
-        // This matches what's shown in the screenshot
+        // Draw continue button
         let button_rect = Rect::new(
             WINDOW_WIDTH / 2.0 - 125.0,
             panel_rect.y + panel_height - 60.0, // Position at the bottom with some padding
-            250.0, // Make button wider to match screenshot
+            250.0, 
             40.0
         );
         
@@ -1103,7 +1038,6 @@ pub fn draw_game_over_ui(state: &MainState, ctx: &mut Context) -> GameResult {
     // Check if player won
     let player_won = state.player_has_won();
     
-    // Create a fancy game over panel
     let panel_rect = Rect::new(
         WINDOW_WIDTH / 2.0 - 250.0,
         WINDOW_HEIGHT / 2.0 - 200.0, // Make panel taller
@@ -1111,9 +1045,9 @@ pub fn draw_game_over_ui(state: &MainState, ctx: &mut Context) -> GameResult {
         400.0 // Increased height
     );
     
-    draw_panel(ctx, panel_rect, COLOR_PANEL, 8.0)?; // Larger shadow for emphasis
+    draw_panel(ctx, panel_rect, COLOR_PANEL, 8.0)?;
     
-    // Add a decorative header bar
+    // Add a header bar
     let header_bar_rect = Rect::new(
         panel_rect.x,
         panel_rect.y,
@@ -1316,7 +1250,7 @@ pub fn draw_game_over_ui(state: &MainState, ctx: &mut Context) -> GameResult {
         COLOR_PRIMARY,
         "Restart Game",
         20.0,
-        false // Not hovered
+        false // Not hovered by default
     )?;
 
     Ok(())

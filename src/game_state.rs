@@ -79,6 +79,14 @@ impl MainState {
         match bot_index {
             0 => {
                 // Bot 1: Economy-focused bot
+
+                // If less than 3 hp, donate all gold
+                if bot.health < 3 {
+                    let contribution = bot.gold;
+                    if contribution > 0.0 {
+                        bot.contribute_gold(contribution);
+                    }
+                }
                 
                 // Only consider donating at end of round
                 if is_end_of_round {
@@ -136,7 +144,7 @@ impl MainState {
                 // End of round donation with health-based amounts
                 if is_end_of_round {
                     let contribution_percentage = if bot.health < 3 {
-                        0.7 // 70% when critically low HP
+                        0.9 // 90% when critically low HP
                     } else {
                         0.3 // 30% normally
                     };
