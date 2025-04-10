@@ -8,8 +8,8 @@ mod ui;
 
 use game_state::MainState;
 
-const WINDOW_WIDTH: f32 = 800.0;
-const WINDOW_HEIGHT: f32 = 600.0;
+const WINDOW_WIDTH: f32 = 1920.0;
+const WINDOW_HEIGHT: f32 = 1080.0;
 
 
 // Main function to run the game and initialize the state
