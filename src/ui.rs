@@ -994,7 +994,7 @@ pub fn draw_pet_interface(state: &MainState, ctx: &mut Context) -> GameResult {
             ctx,
             unlock_btn_rect,
             unlock_btn_color,
-            "Unlock Pet (1000g)",
+            "-Coming Soon-",
             18.0,
             false // Not hovered
         )?;

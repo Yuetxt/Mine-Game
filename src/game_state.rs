@@ -459,38 +459,9 @@ impl MainState {
             self.player.contribute_gold(self.player.gold);
         }
         
-        // Check Pet interface buttons
-        let pet_interface_x = WINDOW_WIDTH - 240.0;
-        
-        // Check if clicking the unlock button
-        if !self.pet.unlocked {
-            let unlock_btn_rect = Rect::new(pet_interface_x, 500.0, 220.0, 40.0);
-            if x >= unlock_btn_rect.x && x <= unlock_btn_rect.x + unlock_btn_rect.w && 
-               y >= unlock_btn_rect.y && y <= unlock_btn_rect.y + unlock_btn_rect.h {
-                self.unlock_pet();
-            }
-        } else if self.pet.alive {
-            // Mining button
-            let mine_btn_rect = Rect::new(pet_interface_x, 460.0, 220.0, 40.0);
-            if x >= mine_btn_rect.x && x <= mine_btn_rect.x + mine_btn_rect.w && 
-               y >= mine_btn_rect.y && y <= mine_btn_rect.y + mine_btn_rect.h {
-                self.toggle_pet_mining();
-            }
-            
-            // Search button
-            let search_btn_rect = Rect::new(pet_interface_x, 510.0, 220.0, 40.0);
-            if x >= search_btn_rect.x && x <= search_btn_rect.x + search_btn_rect.w && 
-               y >= search_btn_rect.y && y <= search_btn_rect.y + search_btn_rect.h {
-                self.toggle_pet_searching();
-            }
-            
-            // Sacrifice button
-            let sacrifice_btn_rect = Rect::new(pet_interface_x, 560.0, 220.0, 40.0);
-            if x >= sacrifice_btn_rect.x && x <= sacrifice_btn_rect.x + sacrifice_btn_rect.w && 
-               y >= sacrifice_btn_rect.y && y <= sacrifice_btn_rect.y + sacrifice_btn_rect.h {
-                self.pet_take_hit();
-            }
-        }
+        // To:do - check Pet interface buttons
+        // To:do - check if pet is unlocked and alive
+        // Check for the abilities
     }
 
     pub fn handle_round_end_ui_click(&mut self, x: f32, y: f32) {
