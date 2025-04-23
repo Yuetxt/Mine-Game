@@ -1161,7 +1161,7 @@ pub fn draw_game_over_ui(state: &MainState, ctx: &mut Context) -> GameResult {
     )?;
     
     let gold_value = Text::new(
-        TextFragment::new(format!("{:.0}g", state.player.gold + state.player.donated_gold))
+        TextFragment::new(format!("{:.0}g", state.player.total_gold_mined))
             .scale(20.0)
             .color(COLOR_GOLD)
     );

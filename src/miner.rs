@@ -1,7 +1,6 @@
 use ggez::Context;
 use std::time::{Duration, Instant};
 
-// Constants moved to this module
 pub const STARTING_HEALTH: i32 = 10;
 
 #[derive(Debug, Clone, Copy)]
@@ -20,16 +19,12 @@ pub struct Miner {
     pub last_mine_time: Instant,
     pub health: i32,
     pub alive: bool,
-    pub has_donated_this_round: bool, // Add this field
+    pub has_donated_this_round: bool,
+    pub total_gold_mined: f32,
 }
 
 impl Miner {
     pub fn new(miner_type: MinerType) -> Self {
-
-        let starting_gold = match miner_type {
-            MinerType::Player => 0.0,
-            MinerType::Bot => 100.0,
-        };
         Miner {
             miner_type,
             gold: 0.0,
@@ -39,7 +34,8 @@ impl Miner {
             last_mine_time: Instant::now(),
             health: STARTING_HEALTH,
             alive: true,
-            has_donated_this_round: false, // Initialize to false
+            has_donated_this_round: false,
+            total_gold_mined: 0.0, // Initialize to 0
         }
     }
 
@@ -95,7 +91,9 @@ impl Miner {
         
         if elapsed >= self.mine_rate() {
             // Mine gold
-            self.gold += self.gold_per_mine();
+            let gold_amount = self.gold_per_mine();
+            self.gold += gold_amount;
+            self.total_gold_mined += gold_amount; // Track the total gold mined
             self.last_mine_time = now;
         }
     }

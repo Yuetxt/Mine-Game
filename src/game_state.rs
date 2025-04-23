@@ -28,6 +28,7 @@ pub struct MainState {
     pub game_state: GameState,
     pub round_results: Option<Vec<(usize, f32)>>, // (miner_index, donated_gold)
     pub past_results: Vec<bool>, // true for win, false for loss
+    pub total_gold_earned: f32, // New field to track total gold earned
 }
 
 impl MainState {
@@ -48,6 +49,7 @@ impl MainState {
             game_state: GameState::Playing,
             round_results: None,
             past_results: Vec::new(),
+            total_gold_earned: 0.0,
         })
     }
     
@@ -380,6 +382,7 @@ impl MainState {
         self.game_state = GameState::Playing;
         self.round_results = None;
         self.past_results = Vec::new();
+        self.total_gold_earned = 0.0;
     }
 
     pub fn handle_game_ui_click(&mut self, x: f32, y: f32) {
@@ -473,10 +476,17 @@ impl EventHandler for MainState {
         // This fixes issue with gold accumulating during round end screen
         match self.game_state {
             GameState::Playing => {
+                let previous_gold = self.player.gold;
+
                 // Update player and bots
                 self.player.update(ctx);
                 for bot in &mut self.bots {
                     bot.update(ctx);
+                }
+
+                let gold_earned_this_update = self.player.gold - previous_gold;
+                if gold_earned_this_update > 0.0 {
+                    self.total_gold_earned += gold_earned_this_update;
                 }
                 
                 // Make random decisions for bots
