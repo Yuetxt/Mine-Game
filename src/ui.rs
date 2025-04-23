@@ -281,6 +281,7 @@ fn draw_progress_bar(
     
     Ok(())
 }
+
 pub fn draw_game_ui(state: &MainState, ctx: &mut Context) -> GameResult {
     // Clear with the background color
     graphics::clear(ctx, COLOR_BACKGROUND);
@@ -357,6 +358,8 @@ pub fn draw_game_ui(state: &MainState, ctx: &mut Context) -> GameResult {
         health_color
     )?;
 
+    draw_cursor_coordinates(state, ctx)?;
+
     // Draw upgrade options
     draw_upgrade_options(state, ctx)?;
     
@@ -367,10 +370,66 @@ pub fn draw_game_ui(state: &MainState, ctx: &mut Context) -> GameResult {
 
     // Draw contribute gold option
     draw_contribute_option(state, ctx)?;
+    
+    // Draw pet interface
+    draw_pet_interface(state, ctx)?;
 
     Ok(())
 }
 
+// Updated function with better contrast and visibility
+fn draw_cursor_coordinates(state: &MainState, ctx: &mut Context) -> GameResult {
+    if state.show_cursor_position {
+        // Create a fully opaque background with a bold color
+        let panel_rect = Rect::new(5.0, 5.0, 200.0, 40.0); // Positioned at top-left
+        
+        // Draw a bold border
+        let border_rect = Rect::new(
+            panel_rect.x - 2.0, 
+            panel_rect.y - 2.0, 
+            panel_rect.w + 4.0, 
+            panel_rect.h + 4.0
+        );
+        
+        let border = MeshBuilder::new()
+            .rounded_rectangle(
+                DrawMode::fill(),
+                border_rect,
+                8.0,
+                Color::new(1.0, 0.3, 0.3, 1.0) // Bright red border
+            )?
+            .build(ctx)?;
+        
+        graphics::draw(ctx, &border, DrawParam::default())?;
+        
+        // Main panel
+        let panel = MeshBuilder::new()
+            .rounded_rectangle(
+                DrawMode::fill(),
+                panel_rect,
+                6.0,
+                Color::new(0.0, 0.0, 0.0, 1.0) // Fully opaque black background
+            )?
+            .build(ctx)?;
+        
+        graphics::draw(ctx, &panel, DrawParam::default())?;
+        
+        // Draw the text with current coordinates
+        let position_text = Text::new(
+            TextFragment::new(format!("X: {:.0}, Y: {:.0}", state.cursor_position.0, state.cursor_position.1))
+                .scale(24.0) // Larger text
+                .color(Color::new(1.0, 1.0, 0.0, 1.0)) // Bright yellow text for maximum contrast
+        );
+        
+        graphics::draw(
+            ctx,
+            &position_text,
+            DrawParam::default().dest([panel_rect.x + 10.0, panel_rect.y + 8.0]),
+        )?;
+    }
+    
+    Ok(())
+}
 
 fn draw_game_activity_log(state: &MainState, ctx: &mut Context) -> GameResult {
     // Center panel for game activity
@@ -856,6 +915,237 @@ fn draw_contribute_option(state: &MainState, ctx: &mut Context) -> GameResult {
     Ok(())
 }
 
+pub fn draw_pet_interface(state: &MainState, ctx: &mut Context) -> GameResult {
+    // Pet panel position - aligned properly to the right side
+    // Coded panel using the cursor helper -- may need to find a better way to do this
+    // To:do - make this more dynamic and less hardcoded
+    let pet_rect = Rect::new(800.0, 10.0, 250.0, WINDOW_HEIGHT - 20.0);
+    draw_panel(ctx, pet_rect, COLOR_PANEL, 3.0)?;
+    
+    // Panel header - positioned relative to panel
+    draw_header_text(
+        ctx,
+        "Pet Companion",
+        pet_rect.x + 20.0, // Left aligned with padding
+        pet_rect.y + 20.0, // Top padding
+        22.0,
+        COLOR_PRIMARY
+    )?;
+    
+    if !state.pet.unlocked {
+        // Interface is locked - draw greyed out content with lock
+        
+        // Draw lock icon (simplified) - positioned relative to panel
+        let lock_x = pet_rect.x + pet_rect.w/2.0 - 15.0; // Centered
+        let lock_y = pet_rect.y + 100.0;
+        
+        let lock_circle = MeshBuilder::new()
+            .circle(
+                DrawMode::fill(),
+                [lock_x, lock_y],
+                15.0,
+                0.1,
+                Color::new(0.6, 0.6, 0.6, 1.0) // Grey
+            )?
+            .build(ctx)?;
+        
+        graphics::draw(ctx, &lock_circle, DrawParam::default())?;
+        
+        // Lock body - positioned relative to lock circle
+        let lock_body = Rect::new(lock_x - 20.0, lock_y, 40.0, 25.0);
+        let lock_body_mesh = MeshBuilder::new()
+            .rectangle(
+                DrawMode::fill(),
+                lock_body,
+                Color::new(0.6, 0.6, 0.6, 1.0) // Grey
+            )?
+            .build(ctx)?;
+        
+        graphics::draw(ctx, &lock_body_mesh, DrawParam::default())?;
+        
+        // Information about what the pet does - positioned relative to panel
+        let info_text = Text::new(
+            TextFragment::new("Your pet can help you by:\n- Mining gold\n- Searching for rare loot\n- Taking a hit for you once")
+                .scale(16.0)
+                .color(Color::new(0.7, 0.7, 0.7, 1.0)) // Greyed out
+        );
+        
+        graphics::draw(
+            ctx,
+            &info_text,
+            DrawParam::default().dest([pet_rect.x + 20.0, pet_rect.y + 150.0]),
+        )?;
+        
+        // Unlock button - positioned relative to panel
+        let unlock_btn_rect = Rect::new(
+            pet_rect.x + 15.0, 
+            pet_rect.y + 250.0, 
+            pet_rect.w - 30.0, 
+            40.0
+        );
+        
+        let unlock_btn_color = if state.player.gold >= 1000.0 {
+            COLOR_ACCENT
+        } else {
+            COLOR_DISABLED
+        };
+        
+        draw_button_with_text(
+            ctx,
+            unlock_btn_rect,
+            unlock_btn_color,
+            "Unlock Pet (1000g)",
+            18.0,
+            false // Not hovered
+        )?;
+    } else {
+        // Pet is unlocked - draw interactive interface
+        
+        // Draw pet icon (simplified) - positioned relative to panel
+        let pet_circle = MeshBuilder::new()
+            .circle(
+                DrawMode::fill(),
+                [pet_rect.x + 40.0, pet_rect.y + 60.0],
+                15.0,
+                0.1,
+                if !state.pet.alive {
+                    COLOR_SECONDARY // Red if dead
+                } else if state.pet.mining {
+                    COLOR_ACCENT // Green if mining
+                } else if state.pet.searching {
+                    COLOR_GOLD // Gold if searching
+                } else {
+                    COLOR_PRIMARY // Blue if idle
+                }
+            )?
+            .build(ctx)?;
+        
+        graphics::draw(ctx, &pet_circle, DrawParam::default())?;
+        
+        // Draw pet status - positioned relative to panel
+        let status_text = if !state.pet.alive {
+            "Dead"
+        } else if state.pet.mining {
+            "Mining"
+        } else if state.pet.searching {
+            "Searching for Loot"
+        } else {
+            "Idle"
+        };
+        
+        let status_color = if !state.pet.alive {
+            COLOR_SECONDARY
+        } else if state.pet.mining {
+            COLOR_ACCENT
+        } else if state.pet.searching {
+            COLOR_GOLD
+        } else {
+            COLOR_TEXT
+        };
+        
+        draw_stat(
+            ctx,
+            "Status: ",
+            status_text,
+            pet_rect.x + 75.0,
+            pet_rect.y + 55.0,
+            status_color
+        )?;
+        
+        if state.pet.alive {
+            // Mining button - positioned relative to panel
+            let mine_btn_rect = Rect::new(
+                pet_rect.x + 15.0, 
+                pet_rect.y + 100.0, 
+                pet_rect.w - 30.0, 
+                40.0
+            );
+            
+            let mine_btn_color = if state.pet.mining {
+                COLOR_ACCENT // Green when active
+            } else {
+                COLOR_PRIMARY // Blue when inactive
+            };
+            
+            draw_button_with_text(
+                ctx,
+                mine_btn_rect,
+                mine_btn_color,
+                "Start/Stop Mining",
+                18.0,
+                false // Not hovered
+            )?;
+            
+            // Search button - positioned relative to panel
+            let search_btn_rect = Rect::new(
+                pet_rect.x + 15.0, 
+                pet_rect.y + 150.0, 
+                pet_rect.w - 30.0, 
+                40.0
+            );
+            
+            let search_btn_color = if state.pet.searching {
+                COLOR_GOLD // Gold when active
+            } else {
+                COLOR_PRIMARY // Blue when inactive
+            };
+            
+            draw_button_with_text(
+                ctx,
+                search_btn_rect,
+                search_btn_color,
+                "Start/Stop Searching",
+                18.0,
+                false // Not hovered
+            )?;
+            
+            // Take hit button - positioned relative to panel
+            let sacrifice_btn_rect = Rect::new(
+                pet_rect.x + 15.0, 
+                pet_rect.y + 200.0, 
+                pet_rect.w - 30.0, 
+                40.0
+            );
+            
+            draw_button_with_text(
+                ctx,
+                sacrifice_btn_rect,
+                COLOR_SECONDARY,
+                "Use Pet to Take a Hit",
+                18.0,
+                false // Not hovered
+            )?;
+            
+            // Info text - positioned relative to panel
+            let info_text = Text::new(
+                TextFragment::new("Your pet will automatically take\nthe next hit when you lose a round.")
+                    .scale(14.0)
+                    .color(COLOR_TEXT)
+            );
+            
+            graphics::draw(
+                ctx,
+                &info_text,
+                DrawParam::default().dest([pet_rect.x + 20.0, pet_rect.y + 250.0]),
+            )?;
+        } else {
+            // Pet is dead - show sad message - positioned relative to panel
+            let dead_text = Text::new(
+                TextFragment::new("Your pet has sacrificed itself to\nprotect you. It can no longer help.\n\nUnlock a new pet in the next game.")
+                    .scale(16.0)
+                    .color(COLOR_SECONDARY)
+            );
+            
+            graphics::draw(
+                ctx,
+                &dead_text,
+                DrawParam::default().dest([pet_rect.x + 20.0, pet_rect.y + 150.0]),
+            )?;
+        }
+    }
+    
+    Ok(())
+}
 
 pub fn draw_round_end_ui(state: &MainState, ctx: &mut Context) -> GameResult {
     // Clear with the background color

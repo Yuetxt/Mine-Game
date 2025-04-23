@@ -6,7 +6,10 @@ use rand::Rng;
 use std::time::{Duration, Instant};
 
 use crate::miner::{Miner, MinerType};
+use crate::pet::Pet;
 use crate::ui;
+
+
 
 // Game constants
 pub const MAX_ROUNDS: usize = 10; // shortened to 10 from 15
@@ -29,6 +32,9 @@ pub struct MainState {
     pub round_results: Option<Vec<(usize, f32)>>, // (miner_index, donated_gold)
     pub past_results: Vec<bool>, // true for win, false for loss
     pub total_gold_earned: f32, // New field to track total gold earned
+    pub pet: Pet,
+    pub show_cursor_position: bool, 
+    pub cursor_position: (f32, f32), //  to store current cursor position
 }
 
 impl MainState {
@@ -50,6 +56,9 @@ impl MainState {
             round_results: None,
             past_results: Vec::new(),
             total_gold_earned: 0.0,
+            pet: Pet::new(),
+            show_cursor_position: false,
+            cursor_position: (0.0, 0.0),
         })
     }
     
@@ -75,7 +84,7 @@ impl MainState {
         
         // Get upgrade costs
         let pickaxe_cost = bot.pickaxe_upgrade_cost();
-        let mine_cost = bot.mine_upgrade_cost();
+        //let mine_cost = bot.mine_upgrade_cost();
         
         // Different strategies based on bot index
         match bot_index {
@@ -285,6 +294,25 @@ impl MainState {
         }
     }
 
+    pub fn unlock_pet(&mut self) {
+        if !self.pet.unlocked && self.player.gold >= 1000.0 {
+            self.player.gold -= 1000.0;
+            self.pet.unlock();
+        }
+    }
+
+    pub fn toggle_pet_mining(&mut self) {
+        self.pet.toggle_mining();
+    }
+
+    pub fn toggle_pet_searching(&mut self) {
+        self.pet.toggle_searching();
+    }
+
+    pub fn pet_take_hit(&mut self) {
+        self.pet.take_hit();
+    }
+
     pub fn end_round(&mut self) {
         // Collect all miners' donated gold amounts (including player)
         let mut results = Vec::new();
@@ -311,8 +339,12 @@ impl MainState {
             let damage = position as i32;
             
             if *miner_index == 0 {
-                // Player
-                self.player.take_damage(damage);
+                // Player - check if pet can take the hit instead
+                if self.pet.unlocked && self.pet.alive && damage > 0 {
+                    self.pet.take_hit();
+                } else {
+                    self.player.take_damage(damage);
+                }
             } else {
                 // Bot
                 self.bots[*miner_index - 1].take_damage(damage);
@@ -352,7 +384,7 @@ impl MainState {
         // If we're still here, continue to the next round
         self.game_state = GameState::RoundEnd;
     }
-
+    
     pub fn player_has_won(&self) -> bool {
         // Player wins if they're alive and all bots are dead
         self.player.alive && !self.bots.iter().any(|bot| bot.alive)
@@ -383,6 +415,9 @@ impl MainState {
         self.round_results = None;
         self.past_results = Vec::new();
         self.total_gold_earned = 0.0;
+        self.pet = Pet::new(); // Reset the pet
+        self.show_cursor_position = false;
+        self.cursor_position = (0.0, 0.0);
     }
 
     pub fn handle_game_ui_click(&mut self, x: f32, y: f32) {
@@ -422,6 +457,39 @@ impl MainState {
         if x >= contrib_btn_x && x <= contrib_btn_x + contrib_btn_width && 
         y >= all_y_pos && y <= all_y_pos + 30.0 && self.player.gold > 0.0 {
             self.player.contribute_gold(self.player.gold);
+        }
+        
+        // Check Pet interface buttons
+        let pet_interface_x = WINDOW_WIDTH - 240.0;
+        
+        // Check if clicking the unlock button
+        if !self.pet.unlocked {
+            let unlock_btn_rect = Rect::new(pet_interface_x, 500.0, 220.0, 40.0);
+            if x >= unlock_btn_rect.x && x <= unlock_btn_rect.x + unlock_btn_rect.w && 
+               y >= unlock_btn_rect.y && y <= unlock_btn_rect.y + unlock_btn_rect.h {
+                self.unlock_pet();
+            }
+        } else if self.pet.alive {
+            // Mining button
+            let mine_btn_rect = Rect::new(pet_interface_x, 460.0, 220.0, 40.0);
+            if x >= mine_btn_rect.x && x <= mine_btn_rect.x + mine_btn_rect.w && 
+               y >= mine_btn_rect.y && y <= mine_btn_rect.y + mine_btn_rect.h {
+                self.toggle_pet_mining();
+            }
+            
+            // Search button
+            let search_btn_rect = Rect::new(pet_interface_x, 510.0, 220.0, 40.0);
+            if x >= search_btn_rect.x && x <= search_btn_rect.x + search_btn_rect.w && 
+               y >= search_btn_rect.y && y <= search_btn_rect.y + search_btn_rect.h {
+                self.toggle_pet_searching();
+            }
+            
+            // Sacrifice button
+            let sacrifice_btn_rect = Rect::new(pet_interface_x, 560.0, 220.0, 40.0);
+            if x >= sacrifice_btn_rect.x && x <= sacrifice_btn_rect.x + sacrifice_btn_rect.w && 
+               y >= sacrifice_btn_rect.y && y <= sacrifice_btn_rect.y + sacrifice_btn_rect.h {
+                self.pet_take_hit();
+            }
         }
     }
 
@@ -472,8 +540,6 @@ impl MainState {
 
 impl EventHandler for MainState {
     fn update(&mut self, ctx: &mut Context) -> GameResult {
-        // Only update player and bots when in Playing state
-        // This fixes issue with gold accumulating during round end screen
         match self.game_state {
             GameState::Playing => {
                 let previous_gold = self.player.gold;
@@ -482,6 +548,43 @@ impl EventHandler for MainState {
                 self.player.update(ctx);
                 for bot in &mut self.bots {
                     bot.update(ctx);
+                }
+                
+                // Update pet mining if active
+                if self.pet.unlocked && self.pet.alive && self.pet.mining {
+                    let now = Instant::now();
+                    let elapsed = now.duration_since(self.pet.last_mine_time);
+                    let pet_mine_rate = self.player.mine_rate() * 2; // Half the player's speed
+                    
+                    if elapsed >= pet_mine_rate {
+                        // Pet mines gold at half the player's rate
+                        let gold_amount = self.player.gold_per_mine() / 2.0;
+                        self.player.gold += gold_amount;
+                        self.total_gold_earned += gold_amount;
+                        self.pet.last_mine_time = now;
+                    }
+                }
+                
+                // Add random loot finding for pet if searching
+                if self.pet.unlocked && self.pet.alive && self.pet.searching {
+                    let now = Instant::now();
+                    let elapsed = now.duration_since(self.pet.last_mine_time);
+                    
+                    // Check every 5 seconds for loot
+                    if elapsed >= Duration::from_secs(5) {
+                        // 10% chance to find loot
+                        let mut rng = rand::thread_rng();
+                        let found_loot = rng.gen_range(0..10) == 0;
+                        
+                        if found_loot {
+                            // For now, just give some random gold (stub implementation)
+                            let gold_amount = rng.gen_range(50.0..200.0);
+                            self.player.gold += gold_amount;
+                            self.total_gold_earned += gold_amount;
+                        }
+                        
+                        self.pet.last_mine_time = now;
+                    }
                 }
 
                 let gold_earned_this_update = self.player.gold - previous_gold;
@@ -543,6 +646,35 @@ impl EventHandler for MainState {
                 }
             }
         }
+        
+        // Check for "-" key press (always active in any game state)
+        if keycode == KeyCode::Minus {
+            self.show_cursor_position = true;
+        }
+    }
+
+    fn key_up_event(
+        &mut self,
+        _ctx: &mut Context,
+        keycode: KeyCode,
+        _keymods: KeyMods,
+    ) {
+        // Check for "-" key release
+        if keycode == KeyCode::Minus {
+            self.show_cursor_position = false;
+        }
+    }
+
+    fn mouse_motion_event(
+        &mut self, 
+        _ctx: &mut Context,
+        x: f32, 
+        y: f32, 
+        _dx: f32, 
+        _dy: f32
+    ) {
+        // Update cursor position
+        self.cursor_position = (x, y);
     }
 
     fn draw(&mut self, ctx: &mut Context) -> GameResult {

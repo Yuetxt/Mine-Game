@@ -5,6 +5,7 @@ use ggez::conf::{WindowSetup, WindowMode};
 mod miner;
 mod game_state;
 mod ui;
+mod pet;
 
 use game_state::MainState;
 
